@@ -24,10 +24,27 @@ SYSTEM_PROMPT = (
 
 
 def _get_client() -> OpenAI:
-    """Initialise and return an OpenAI client."""
+    """Initialise and return an OpenAI client.
+
+    Key resolution order:
+      1. Streamlit secrets (st.secrets) — used when deployed on Streamlit Cloud
+      2. Environment variable OPENAI_API_KEY — used locally via .env
+    """
     api_key = os.getenv("OPENAI_API_KEY")
+
+    # On Streamlit Cloud, secrets are injected via st.secrets, not os.environ
     if not api_key:
-        raise EnvironmentError("OPENAI_API_KEY not found in .env")
+        try:
+            import streamlit as st
+            api_key = st.secrets.get("OPENAI_API_KEY")
+        except Exception:
+            pass
+
+    if not api_key:
+        raise EnvironmentError(
+            "OPENAI_API_KEY not found. "
+            "Add it to your .env file (local) or Streamlit Cloud Secrets (deployed)."
+        )
     return OpenAI(api_key=api_key)
 
 
